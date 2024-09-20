@@ -157,7 +157,7 @@ int test0() {
     int turn = 10000000;
     double eta = 0.0000001;
 
-    for (int i = 0; i < turn; i++) {
+    for (int i = 1; i < turn + 1; i++) {
         network.train({xI}, {yI}, eta);
         if (i % (turn / 10) == 0) {
             output = network.forward({1.0, 1.0});
