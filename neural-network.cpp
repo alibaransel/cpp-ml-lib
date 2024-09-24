@@ -1,5 +1,8 @@
 #include <cmath>
+#include <fstream>
 #include <iostream>
+#include <sstream>
+#include <tuple>
 #include <vector>
 
 using namespace std;
@@ -179,8 +182,77 @@ int test0() {
     return 0;
 }
 
+tuple<vector<vector<double>>, vector<double>> getDataset() {
+    ifstream file("Student_Performance.csv");
+    if (!file.is_open())
+        exit(0);  // improve later
+    string line;
+    getline(file, line);
+    istringstream lineSS(line);
+    vector<string> keys;
+    string key;
+    while (getline(lineSS, key, ','))
+        keys.push_back(key);
+
+    vector<vector<double>> X;
+    vector<double> y;
+    vector<double> lineData;
+    string stringData;
+    int n = 10;
+    while (n > 0 && getline(file, line)) {
+        istringstream newLineSS(line);
+        getline(newLineSS, stringData, ',');
+        lineData.push_back(stod(stringData) / 10);
+        getline(newLineSS, stringData, ',');
+        lineData.push_back(stod(stringData) / 100);
+        getline(newLineSS, stringData, ',');
+        double a = stringData == "Yes" ? 1.0 : 0.0;
+        lineData.push_back(a);
+        getline(newLineSS, stringData, ',');
+        lineData.push_back(stod(stringData) / 10);
+        getline(newLineSS, stringData, ',');
+        lineData.push_back(stod(stringData) / 10);
+        getline(newLineSS, stringData, ',');
+        y.push_back(stod(stringData) / 100);
+        X.push_back(lineData);
+        lineData.clear();
+    }
+    file.close();
+    return {X, y};
+}
+
 int main() {
-    test0();
+    vector<vector<double>> x;
+    vector<double> y_1d;
+
+    tie(x, y_1d) = getDataset();
+
+    vector<vector<double>> y;
+    for (int i = 0; i < y_1d.size(); i++) y.push_back({y_1d[i]});
+
+    Network network = Network({5, 1});
+
+    vector<double> output;
+
+    output = network.forward({1.0, 1.0});
+    printVector(output);
+
+    int turn = 1000;
+    double eta = 0.000001;
+
+    for (int i = 1; i < turn + 1; i++) {
+        network.train(x, y, eta);
+        if (i % (turn / 100) == 0) {
+            output = network.forward({1.0, 1.0});
+            cout << '[';
+            for (int i = 0; i < output.size(); i++) cout << ' ' << output[i] << ',';
+            cout << "] error = ";
+            double error = 0.0;
+            for (int j = 0; j < y[i].size(); j++) error += pow((y[i][j] - output[j]), 2);
+            cout << error << endl;
+        }
+    }
+
     cin;
     return 0;
 }
