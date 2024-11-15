@@ -164,11 +164,11 @@ int test0() {
         network.train({xI}, {yI}, eta);
         if (i % (turn / 10) == 0) {
             output = network.forward({1.0, 1.0});
-            cout << '[';
-            for (int i = 0; i < output.size(); i++) cout << ' ' << output[i] << ',';
+            cout << i << " [";
+            for (int j = 0; j < output.size(); j++) cout << ' ' << output[j] << ',';
             cout << "] error = ";
             double error = 0.0;
-            for (int j = 0; j < yI.size(); j++) error += pow((yI[j] - output[j]), 2);
+            for (int k = 0; k < yI.size(); k++) error += pow((yI[k] - output[k]), 2);
             cout << error << endl;
         }
     }
