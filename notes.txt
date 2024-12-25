@@ -1,0 +1,50 @@
+--- Service Structure ---
+
+File Service -> Reading and Writing data to files
+Data Service -> Preparing data to use
+Machine Learning Service -> Create, Train and Make Prediction with Model
+Interface Service -> Use Terminal to all operations (Selections, writing and reading data)
+Device Service -> Determine the availability of operations for device
+Computation Service -> Parallel Computation on both CPU and GPU
+
+--- Object and Inheritance Structure ---
+
+Object
+    Machine Learning Object
+        Machine Learning Model
+            Regression Model
+                Linear Regression Model
+                Logistic Regression Model
+            Neural Network Model
+            Layer
+            Neuron
+        Activation Function
+            Linear Activation Function
+            Logistic (Sigmoid) Activation Function (?)
+        Loss Function (?)
+        Cost Function (?)
+        Machine Learning Process
+            Training Process
+                Simple Train (?)
+                Cross Validation (?)
+                Batch (?)
+            Data Preparing Process
+                Reading
+                Labeling/Unlabeling (?)
+                Normalization (?)
+                Order Randomization
+        Data Object
+            Continuous Data
+            Discrete Data
+
+--- Objects ---
+
+Machine Learning Object
+    toJSON() (or some data encoding/decoding)
+    fromJSON()
+
+Machine Learning Model
+    create()
+    train()
+    predict()
+
