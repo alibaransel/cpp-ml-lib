@@ -198,7 +198,7 @@ tuple<vector<vector<double>>, vector<double>> getDataset() {
     vector<double> y;
     vector<double> lineData;
     string stringData;
-    int n = 10;
+    int n = 10000;
     while (n > 0 && getline(file, line)) {
         istringstream newLineSS(line);
         getline(newLineSS, stringData, ',');
@@ -230,29 +230,27 @@ int main() {
     vector<vector<double>> y;
     for (int i = 0; i < y_1d.size(); i++) y.push_back({y_1d[i]});
 
-    Network network = Network({5, 1});
+    Network network = Network({5, 5, 1});
 
     vector<double> output;
 
     output = network.forward({1.0, 1.0});
     printVector(output);
 
-    int turn = 1000;
+    int turn = 100;
     double eta = 0.000001;
+    double error = 0.0;
 
     for (int i = 1; i < turn + 1; i++) {
         network.train(x, y, eta);
-        if (i % (turn / 100) == 0) {
-            output = network.forward({1.0, 1.0});
-            cout << '[';
-            for (int i = 0; i < output.size(); i++) cout << ' ' << output[i] << ',';
-            cout << "] error = ";
-            double error = 0.0;
-            for (int j = 0; j < y[i].size(); j++) error += pow((y[i][j] - output[j]), 2);
-            cout << error << endl;
-        }
+        output = network.forward({1.0, 1.0});
+        cout << "Turn " << i << " [";
+        for (int i = 0; i < output.size(); i++) cout << ' ' << output[i] << ',';
+        cout << "] error = ";
+        error = 0;
+        for (int j = 0; j < y[i].size(); j++) error += pow((y[i][j] - output[j]), 2);
+        cout << error << endl;
     }
 
-    cin;
     return 0;
 }
