@@ -7,6 +7,11 @@
 
 using namespace std;
 
+double randomDouble() {
+    // return 1.0;
+    return (double)rand() / RAND_MAX;
+}
+
 class Neuron {
    private:
     vector<double> w;
@@ -19,19 +24,19 @@ class Neuron {
     double delta_z = 0.0;
 
     double activation(double z) {
-        return z;
+        return 1 / (1 + exp(-z));
     }
 
     double d_activation() {
-        return 1.0;
+        return a * (1 - a);
     }
 
    public:
     Neuron(int inputSize) {
         for (int i = 0; i < inputSize; i++) {
-            w.push_back(0.5);
+            w.push_back(randomDouble());
         }
-        b = 0.5;
+        b = randomDouble();
     }
 
     int getInputSize() {
@@ -94,7 +99,7 @@ class Layer {
         vector<double> weightDeltaListPart;
         for (int n_i = 0; n_i < neurons.size(); n_i++) {
             weightDeltaListPart = neurons[n_i].getWeightDeltaListPart();
-            for (int wDL_i = 0; wDL_i < weightDeltaList.size(); wDL_i++) weightDeltaList[wDL_i] += weightDeltaListPart[wDL_i];
+            for (int wDL_i = 0; wDL_i < weightDeltaList.size(); wDL_i++) weightDeltaList[wDL_i] += (double)weightDeltaListPart[wDL_i] / weightDeltaList.size();  // TODO: Here
         }
         return weightDeltaList;
     }
@@ -104,7 +109,10 @@ class Layer {
     }
 
     void update(double eta) {
-        for (int i_n = 0; i_n < neurons.size(); i_n++) neurons[i_n].update(eta);
+        for (int i_n = 0; i_n < neurons.size(); i_n++) {
+            // cout << i_n << ' ';
+            neurons[i_n].update(eta);
+        }
     }
 };
 
@@ -135,7 +143,11 @@ class Network {
                 layers[l_i].calculateDelta(layers[l_i + 1].getWeightDeltaListForPrevious());
             }
 
-            for (int l_i = 0; l_i < layers.size(); l_i++) layers[l_i].update(eta);
+            for (int l_i = 0; l_i < layers.size(); l_i++) {
+                // cout << "Update l" << l_i << ' ';
+                layers[l_i].update(eta);
+                // cout << endl;
+            }
         }
     }
 };
@@ -157,11 +169,14 @@ int test0() {
     vector<double> xI = {1.0, 1.0};
     vector<double> yI = {2.0, 3.0, 4.0};
 
+    vector<vector<double>> x = {xI};
+    vector<vector<double>> y = {yI};
+
     int turn = 10000000;
     double eta = 0.0000001;
 
     for (int i = 1; i < turn + 1; i++) {
-        network.train({xI}, {yI}, eta);
+        network.train(x, y, eta);
         if (i % (turn / 10) == 0) {
             output = network.forward({1.0, 1.0});
             cout << i << " [";
@@ -182,7 +197,7 @@ int test0() {
     return 0;
 }
 
-tuple<vector<vector<double>>, vector<double>> getDataset() {
+tuple<vector<vector<double>>, vector<vector<double>>> getDataset() {
     ifstream file("Student_Performance.csv");
     if (!file.is_open())
         exit(0);  // improve later
@@ -195,11 +210,11 @@ tuple<vector<vector<double>>, vector<double>> getDataset() {
         keys.push_back(key);
 
     vector<vector<double>> X;
-    vector<double> y;
+    vector<vector<double>> y;  // TODO: Make y 2d
     vector<double> lineData;
     string stringData;
     int n = 10000;
-    while (n > 0 && getline(file, line)) {
+    while (n > 0 && getline(file, line)) {  // TODO: decrease n for each iteration
         istringstream newLineSS(line);
         getline(newLineSS, stringData, ',');
         lineData.push_back(stod(stringData) / 10);
@@ -213,7 +228,7 @@ tuple<vector<vector<double>>, vector<double>> getDataset() {
         getline(newLineSS, stringData, ',');
         lineData.push_back(stod(stringData) / 10);
         getline(newLineSS, stringData, ',');
-        y.push_back(stod(stringData) / 100);
+        y.push_back({stod(stringData) / 100});
         X.push_back(lineData);
         lineData.clear();
     }
@@ -221,11 +236,13 @@ tuple<vector<vector<double>>, vector<double>> getDataset() {
     return {X, y};
 }
 
-int main() {
-    vector<vector<double>> x;
+void test1() {
+    vector<vector<double>> x, y_2d;
     vector<double> y_1d;
 
-    tie(x, y_1d) = getDataset();
+    tie(x, y_2d) = getDataset();
+    for (int i = 0; i < y_2d.size(); i++)
+        for (int j = 0; j < y_2d[0].size(); j++) y_1d.push_back(y_2d[i][j]);
 
     vector<vector<double>> y;
     for (int i = 0; i < y_1d.size(); i++) y.push_back({y_1d[i]});
@@ -251,6 +268,70 @@ int main() {
         for (int j = 0; j < y[i].size(); j++) error += pow((y[i][j] - output[j]), 2);
         cout << error << endl;
     }
+
+    cin;
+}
+
+void test2() {
+    vector<vector<double>> x, y;
+    tie(x, y) = getDataset();
+    cout << "x size: " << x.size() << " x " << x[0].size() << endl;
+    cout << "y size: " << y.size() << endl;
+
+    vector<vector<double>> xTrain, xTest, yTrain, yTest;
+    int iSplit = x.size() * 0.8;
+
+    for (int i = 0; i < iSplit; i++) {
+        xTrain.push_back(x[i]);
+        yTrain.push_back(y[i]);
+    }
+    cout << "xTrain size: " << xTrain.size() << " x " << xTrain[0].size() << endl;
+    cout << "yTrain size: " << yTrain.size() << endl;
+
+    for (int i = iSplit; i < x.size(); i++) {
+        xTest.push_back(x[i]);
+        yTest.push_back(y[i]);
+    }
+    cout << "xTest size: " << xTest.size() << " x " << xTest[0].size() << endl;
+    cout << "yTest size: " << yTest.size() << endl;
+
+    cout << endl;
+
+    Network network = Network({int(x.front().size()), 2, 1});
+
+    vector<double> yPred;
+    double cost = 0;
+
+    for (int i = 0; i < 1000; i++) {
+        network.train(xTrain, yTrain, 0.000001);
+        for (int j = 0; j < xTest.size(); j++) {
+            yPred = network.forward(xTest[j]);
+            for (int k = 0; k < yTest[0].size(); k++) {
+                cost += pow(yTest[j][k] - yPred[k], 2);
+            }
+        }
+    }
+}
+
+void singleLineDummy() {
+    cout << randomDouble() << endl;
+    vector<vector<double>> x, y;
+    x = {{0.1, 0.2, 0.3}};
+    y = {{0.5}};
+    int epoch = 1e+5;
+    double learningRate = 1e-2;
+
+    Network network = Network({3, 64, 32, 16, 1});
+
+    cout << network.forward(x[0])[0] << endl;
+    for (int i = 0; i < epoch; i++) {
+        network.train(x, y, learningRate);
+        cout << network.forward(x[0])[0] << endl;
+    }
+}
+
+int main() {
+    singleLineDummy();
 
     return 0;
 }
