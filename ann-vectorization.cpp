@@ -226,7 +226,7 @@ int main() {
     }
 
     double learningRate = 1e-4;
-    int epochs = 1e5;
+    int epochs = 1e6;
 
     vector<vector<vector<double>>> z(layerCount);
     vector<vector<vector<double>>> a(layerCount);
@@ -272,8 +272,8 @@ int main() {
             b[iL] = vectorSubtraction(b[iL], vectorScalarProduct(learningRate, gradB[iL]));
         }
 
-        if (true || iE % 100 == 0) {  // Temporary always true
-            cout << "Epoch " << iE << ", Loss: " << loss << endl;
+        if (false || (iE + 1) % (epochs / 100 + 1) == 0) {  // Temporary always true
+            cout << "Epoch %" << (iE + 1) / (epochs / 100 + 1) << ", Loss: " << loss << endl;
         }
     }
     auto trainEndTime = chrono::high_resolution_clock::now();
