@@ -1,6 +1,9 @@
 #include <chrono>
 #include <cmath>
+#include <fstream>
+#include <iomanip>
 #include <iostream>
+#include <sstream>
 #include <vector>
 
 using namespace std;
@@ -203,7 +206,147 @@ double boolToDouble(bool x) {
     return 0;
 }
 
+class ANNVec {
+   private:
+    vector<int> stucture;
+    int layerCount;
+    vector<vector<vector<double>>> w;
+    vector<vector<double>> b;
+
+   public:
+    ANNVec(vector<int> structure) {  // TODO: separate input size, maybe separate crete and initialize
+        this->stucture = structure;
+        this->layerCount = structure.size();
+        w = vector<vector<vector<double>>>(structure.size() - 1);
+        b = vector<vector<double>>(structure.size() - 1);
+        for (int iL = 1; iL < layerCount; iL++) {
+            w[iL - 1] = vector<vector<double>>(structure[iL], vector<double>(structure[iL - 1], 0.5));
+            b[iL - 1] = vector<double>(structure[iL], 0.5);
+        }
+        cout << fixed << setprecision(7);
+    };
+    ~ANNVec() {};
+
+    void train(vector<vector<double>> xTrain, vector<vector<double>> yTrain, vector<vector<double>> xTest, vector<vector<double>> yTest, double learningRate, int epochs) {
+        vector<vector<vector<double>>> z(layerCount);
+        vector<vector<vector<double>>> a(layerCount);
+        vector<vector<double>> output;
+        double loss;
+        vector<double> epochLossGraph(epochs);
+        vector<vector<vector<double>>> delta(layerCount);
+        vector<vector<vector<double>>> gradW(layerCount);
+        vector<vector<double>> gradB(layerCount);
+
+        auto trainStartTime = chrono::high_resolution_clock::now();
+        for (int iE = 0; iE < epochs; iE++) {
+            z[0] = transpose(xTrain);
+            a[0] = transpose(xTrain);
+            for (int iL = 1; iL < layerCount; iL++) {
+                z[iL] = matrixAndExpandedVectorAddition(matrixMultiplication(w[iL - 1], a[iL - 1]), b[iL - 1]);
+                a[iL] = matrixForEach(z[iL], sigmoid);
+            }
+
+            output = a.back();
+            loss = -matrixMean(
+                matrixAddition(
+                    matrixSingleProduct(transpose(yTrain), matrixForEach(output, log)),
+                    matrixSingleProduct(matrixScalarProduct(-1, matrixSingleAddition(transpose(yTrain), -1)), matrixForEach(matrixScalarProduct(-1, matrixSingleAddition(output, -1)), log))));
+            epochLossGraph[iE] = loss;
+
+            delta = {};
+            gradW = {};
+            gradB = {};
+            delta[layerCount - 1] = matrixSingleProduct(matrixSubtraction(output, transpose(yTrain)), matrixForEach(output, sigmoidDerivative));  // Inner of cross
+
+            for (int iL = layerCount - 2; iL > -1; iL--) {
+                gradW[iL] = matrixMultiplication(delta[iL + 1], transpose(a[iL]));
+                gradB[iL] = matrixSumOnDim2(delta[iL + 1]);
+
+                if (iL > 0) {
+                    delta[iL] = matrixSingleProduct(matrixMultiplication(transpose(w[iL]), delta[iL + 1]), matrixForEach(a[iL], sigmoidDerivative));  // Inner of cross
+                }
+            }
+
+            for (int iL = 0; iL < layerCount - 1; iL++) {
+                w[iL] = matrixSubtraction(w[iL], matrixScalarProduct(learningRate, gradW[iL]));
+                b[iL] = vectorSubtraction(b[iL], vectorScalarProduct(learningRate, gradB[iL]));
+            }
+
+            if (true || (iE + 1) % (epochs / 100 + 1) == 0) {  // Temporary always true
+                cout << "Epoch %" << 100.0 * (iE + 1) / epochs << ", Loss: " << loss << endl;
+            }
+        }
+        auto trainEndTime = chrono::high_resolution_clock::now();
+        auto trainDuration = chrono::duration_cast<chrono::milliseconds>(trainEndTime - trainStartTime);
+
+        vector<vector<vector<double>>> zTest(layerCount);
+        vector<vector<vector<double>>> aTest(layerCount);
+
+        zTest[0] = transpose(xTest);
+        aTest[0] = transpose(xTest);
+
+        for (int iL = 1; iL < layerCount; iL++) {
+            zTest[iL] = matrixAndExpandedVectorAddition(matrixMultiplication(w[iL - 1], aTest[iL - 1]), b[iL - 1]);
+            aTest[iL] = matrixForEach(zTest[iL], sigmoid);
+        }
+
+        vector<vector<double>> outputTest = aTest.back();
+        double testLoss = -matrixMean(
+            matrixAddition(
+                matrixSingleProduct(transpose(yTest), matrixForEach(outputTest, log)),
+                matrixSingleProduct(matrixScalarProduct(-1, matrixSingleAddition(transpose(yTest), -1)), matrixForEach(matrixScalarProduct(-1, matrixSingleAddition(outputTest, -1)), log))));
+        cout << "Test Loss: " << testLoss << endl;
+
+        vector<vector<bool>> r1 = matrixForEachDoubleToBool(transpose(outputTest), threshold);
+        vector<vector<bool>> r2 = matrixForEachDoubleToBool(yTest, threshold);
+        double predTrue = r1.size() - matrixSum(matrixForEachBoolToDouble(matrixLogicXOR(r1, r2), boolToDouble));
+        double accuracy = predTrue / r1.size();
+        cout << "Train Duration (ms): " << trainDuration.count() << endl;
+        cout << "Accuracy: " << accuracy << endl;
+    }
+};
+
+tuple<vector<vector<double>>, vector<vector<double>>> getDataset() {
+    ifstream file("Student_Performance.csv");
+    if (!file.is_open())
+        exit(0);  // improve later
+    string line;
+    getline(file, line);
+    istringstream lineSS(line);
+    vector<string> keys;
+    string key;
+    while (getline(lineSS, key, ','))
+        keys.push_back(key);
+
+    vector<vector<double>> X;
+    vector<vector<double>> y;  // TODO: Make y 2d
+    vector<double> lineData;
+    string stringData;
+    int n = 10000;
+    while (n > 0 && getline(file, line)) {  // TODO: decrease n for each iteration
+        istringstream newLineSS(line);
+        getline(newLineSS, stringData, ',');
+        lineData.push_back(stod(stringData) / 10);
+        getline(newLineSS, stringData, ',');
+        lineData.push_back(stod(stringData) / 100);
+        getline(newLineSS, stringData, ',');
+        double a = stringData == "Yes" ? 1.0 : 0.0;
+        lineData.push_back(a);
+        getline(newLineSS, stringData, ',');
+        lineData.push_back(stod(stringData) / 10);
+        getline(newLineSS, stringData, ',');
+        lineData.push_back(stod(stringData) / 10);
+        getline(newLineSS, stringData, ',');
+        y.push_back({stod(stringData) / 100});
+        X.push_back(lineData);
+        lineData.clear();
+    }
+    file.close();
+    return {X, y};
+}
+
 int main() {
+    /*
     vector<vector<double>> xTrain = {
         {0.1, 0.2},
         {0.3, 0.4},
@@ -212,73 +355,6 @@ int main() {
         {0.4},
         {0.6},
     };
-
-    int inputSize = xTrain[0].size();
-    vector<int> structure = {inputSize, 3, 1};
-    int layerCount = structure.size();
-
-    vector<vector<vector<double>>> w(structure.size() - 1);
-    vector<vector<double>> b(structure.size() - 1);
-
-    for (int iL = 1; iL < layerCount; iL++) {
-        w[iL - 1] = vector<vector<double>>(structure[iL], vector<double>(structure[iL - 1], 0.5));
-        b[iL - 1] = vector<double>(structure[iL], 0.5);
-    }
-
-    double learningRate = 1e-4;
-    int epochs = 1e6;
-
-    vector<vector<vector<double>>> z(layerCount);
-    vector<vector<vector<double>>> a(layerCount);
-    vector<vector<double>> output;
-    double loss;
-    vector<double> epochLossGraph(epochs);
-    vector<vector<vector<double>>> delta(layerCount);
-    vector<vector<vector<double>>> gradW(layerCount);
-    vector<vector<double>> gradB(layerCount);
-
-    auto trainStartTime = chrono::high_resolution_clock::now();
-    for (int iE = 0; iE < epochs; iE++) {
-        z[0] = transpose(xTrain);
-        a[0] = transpose(xTrain);
-        for (int iL = 1; iL < layerCount; iL++) {
-            z[iL] = matrixAndExpandedVectorAddition(matrixMultiplication(w[iL - 1], a[iL - 1]), b[iL - 1]);
-            a[iL] = matrixForEach(z[iL], sigmoid);
-        }
-
-        output = a.back();
-        loss = -matrixMean(
-            matrixAddition(
-                matrixSingleProduct(transpose(yTrain), matrixForEach(output, log)),
-                matrixSingleProduct(matrixScalarProduct(-1, matrixSingleAddition(transpose(yTrain), -1)), matrixForEach(matrixScalarProduct(-1, matrixSingleAddition(output, -1)), log))));
-        epochLossGraph[iE] = loss;
-
-        delta = {};
-        gradW = {};
-        gradB = {};
-        delta[layerCount - 1] = matrixSingleProduct(matrixSubtraction(output, transpose(yTrain)), matrixForEach(output, sigmoidDerivative));  // Inner of cross
-
-        for (int iL = layerCount - 2; iL > -1; iL--) {
-            gradW[iL] = matrixMultiplication(delta[iL + 1], transpose(a[iL]));
-            gradB[iL] = matrixSumOnDim2(delta[iL + 1]);
-
-            if (iL > 0) {
-                delta[iL] = matrixSingleProduct(matrixMultiplication(transpose(w[iL]), delta[iL + 1]), matrixForEach(a[iL], sigmoidDerivative));  // Inner of cross
-            }
-        }
-
-        for (int iL = 0; iL < layerCount - 1; iL++) {
-            w[iL] = matrixSubtraction(w[iL], matrixScalarProduct(learningRate, gradW[iL]));
-            b[iL] = vectorSubtraction(b[iL], vectorScalarProduct(learningRate, gradB[iL]));
-        }
-
-        if (false || (iE + 1) % (epochs / 100 + 1) == 0) {  // Temporary always true
-            cout << "Epoch %" << (iE + 1) / (epochs / 100 + 1) << ", Loss: " << loss << endl;
-        }
-    }
-    auto trainEndTime = chrono::high_resolution_clock::now();
-    auto trainDuration = chrono::duration_cast<chrono::milliseconds>(trainEndTime - trainStartTime);
-
     vector<vector<double>> xTest = {
         {0.1, 0.2},
         {0.3, 0.4},
@@ -287,31 +363,29 @@ int main() {
         {0.4},
         {0.6},
     };
+    */
 
-    vector<vector<vector<double>>> zTest(layerCount);
-    vector<vector<vector<double>>> aTest(layerCount);
-
-    zTest[0] = transpose(xTest);
-    aTest[0] = transpose(xTest);
-
-    for (int iL = 1; iL < layerCount; iL++) {
-        zTest[iL] = matrixAndExpandedVectorAddition(matrixMultiplication(w[iL - 1], aTest[iL - 1]), b[iL - 1]);
-        aTest[iL] = matrixForEach(zTest[iL], sigmoid);
+    vector<vector<double>> xData, yData, xTrain, yTrain, xTest, yTest;
+    tie(xData, yData) = getDataset();
+    size_t i;
+    for (i = 0; i < xData.size() * 0.9; i++) {
+        xTrain.push_back(xData[i]);
+        yTrain.push_back(yData[i]);
+    }
+    for (; i < xData.size(); i++) {
+        xTest.push_back(xData[i]);
+        yTest.push_back(yData[i]);
     }
 
-    vector<vector<double>> outputTest = aTest.back();
-    double testLoss = -matrixMean(
-        matrixAddition(
-            matrixSingleProduct(transpose(yTest), matrixForEach(outputTest, log)),
-            matrixSingleProduct(matrixScalarProduct(-1, matrixSingleAddition(transpose(yTest), -1)), matrixForEach(matrixScalarProduct(-1, matrixSingleAddition(outputTest, -1)), log))));
-    cout << "Test Loss: " << testLoss << endl;
+    int inputSize = xTrain[0].size();
+    vector<int> structure = {inputSize, 3, 1};
 
-    vector<vector<bool>> r1 = matrixForEachDoubleToBool(transpose(outputTest), threshold);
-    vector<vector<bool>> r2 = matrixForEachDoubleToBool(yTest, threshold);
-    double predTrue = r1.size() - matrixSum(matrixForEachBoolToDouble(matrixLogicXOR(r1, r2), boolToDouble));
-    double accuracy = predTrue / r1.size();
-    cout << "Train Duration (ms): " << trainDuration.count() << endl;
-    cout << "Accuracy: " << accuracy << endl;
+    ANNVec model = ANNVec(structure);
+
+    double learningRate = 1e-4;
+    int epochs = 1e4;
+
+    model.train(xTrain, yTrain, xTest, yTest, learningRate, epochs);
 
     return 0;
 }
