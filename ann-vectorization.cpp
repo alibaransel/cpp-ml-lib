@@ -9,8 +9,13 @@
 using namespace std;
 using std::cout;
 
-vector<vector<double>> matrixMultiplication(vector<vector<double>> a, vector<vector<double>> b) {
-    vector<vector<double>> c(a.size(), vector<double>(b[0].size()));
+template <typename T>
+using matrix = vector<vector<T>>;
+template <typename T>
+using tensor = vector<vector<vector<T>>>;
+
+matrix<double> matrixMultiplication(matrix<double> a, matrix<double> b) {
+    matrix<double> c(a.size(), vector<double>(b[0].size()));
     for (int i = 0; i < a.size(); i++) {
         for (int j = 0; j < b[0].size(); j++) {
             for (int k = 0; k < a[0].size(); k++) {
@@ -29,7 +34,7 @@ double dotProduct(vector<double> a, vector<double> b) {
     return c;
 }
 
-void printMatrix(vector<vector<double>> a) {
+void printMatrix(matrix<double> a) {
     for (int i = 0; i < a.size(); i++) {
         for (int j = 0; j < a[0].size(); j++) {
             cout << a[i][j] << ' ';
@@ -38,8 +43,8 @@ void printMatrix(vector<vector<double>> a) {
     }
 }
 
-vector<vector<double>> transpose(vector<vector<double>> a) {
-    vector<vector<double>> aT = vector<vector<double>>(a[0].size(), vector<double>(a.size()));
+matrix<double> transpose(matrix<double> a) {
+    matrix<double> aT = matrix<double>(a[0].size(), vector<double>(a.size()));
     for (int i = 0; i < a.size(); i++) {
         for (int j = 0; j < a[0].size(); j++) {
             aT[j][i] = a[i][j];
@@ -56,7 +61,7 @@ double sigmoidDerivative(double a) {
     return a * (1 - a);
 }
 
-vector<vector<double>> matrixForEach(vector<vector<double>> a, double f(double)) {
+matrix<double> matrixForEach(matrix<double> a, double f(double)) {
     for (int i = 0; i < a.size(); i++) {
         for (int j = 0; j < a[0].size(); j++) {
             a[i][j] = f(a[i][j]);
@@ -65,7 +70,7 @@ vector<vector<double>> matrixForEach(vector<vector<double>> a, double f(double))
     return a;
 }
 
-vector<vector<double>> matrixAndExpandedVectorAddition(vector<vector<double>> a, vector<double> v) {
+matrix<double> matrixAndExpandedVectorAddition(matrix<double> a, vector<double> v) {
     for (int i = 0; i < a.size(); i++) {
         for (int j = 0; j < a[0].size(); j++) {
             a[i][j] += v[i];
@@ -81,7 +86,7 @@ vector<double> vectorForEach(vector<double> v, double f(double)) {
     return v;
 }
 
-vector<vector<double>> matrixSubtraction(vector<vector<double>> a, vector<vector<double>> b) {
+matrix<double> matrixSubtraction(matrix<double> a, matrix<double> b) {
     for (int i = 0; i < a.size(); i++) {
         for (int j = 0; j < a[0].size(); j++) {
             a[i][j] -= b[i][j];
@@ -90,7 +95,7 @@ vector<vector<double>> matrixSubtraction(vector<vector<double>> a, vector<vector
     return a;
 }
 
-vector<double> matrixSumOnDim2(vector<vector<double>> a) {
+vector<double> matrixSumOnDim2(matrix<double> a) {
     vector<double> s(a.size(), 0);
     for (int i = 0; i < a.size(); i++) {
         for (int j = 0; j < a[0].size(); j++) {
@@ -100,7 +105,7 @@ vector<double> matrixSumOnDim2(vector<vector<double>> a) {
     return s;
 }
 
-vector<vector<double>> matrixSingleProduct(vector<vector<double>> a, vector<vector<double>> b) {
+matrix<double> matrixSingleProduct(matrix<double> a, matrix<double> b) {
     for (int i = 0; i < a.size(); i++) {
         for (int j = 0; j < a[0].size(); j++) {
             a[i][j] *= b[i][j];
@@ -109,7 +114,7 @@ vector<vector<double>> matrixSingleProduct(vector<vector<double>> a, vector<vect
     return a;
 }
 
-vector<vector<double>> matrixScalarProduct(double k, vector<vector<double>> a) {
+matrix<double> matrixScalarProduct(double k, matrix<double> a) {
     for (int i = 0; i < a.size(); i++) {
         for (int j = 0; j < a[0].size(); j++) {
             a[i][j] *= k;
@@ -132,7 +137,7 @@ vector<double> vectorSubtraction(vector<double> a, vector<double> b) {
     return a;
 }
 
-vector<vector<double>> matrixAddition(vector<vector<double>> a, vector<vector<double>> b) {
+matrix<double> matrixAddition(matrix<double> a, matrix<double> b) {
     for (int i = 0; i < a.size(); i++) {
         for (int j = 0; j < a[0].size(); j++) {
             a[i][j] += b[i][j];
@@ -141,7 +146,7 @@ vector<vector<double>> matrixAddition(vector<vector<double>> a, vector<vector<do
     return a;
 }
 
-vector<vector<double>> matrixSingleAddition(vector<vector<double>> a, double k) {
+matrix<double> matrixSingleAddition(matrix<double> a, double k) {
     for (int i = 0; i < a.size(); i++) {
         for (int j = 0; j < a[0].size(); j++) {
             a[i][j] += k;
@@ -150,7 +155,7 @@ vector<vector<double>> matrixSingleAddition(vector<vector<double>> a, double k) 
     return a;
 }
 
-double matrixSum(vector<vector<double>> a) {
+double matrixSum(matrix<double> a) {
     double s = 0;  // Improve later (max bound error may occur)
     for (int i = 0; i < a.size(); i++) {
         for (int j = 0; j < a[0].size(); j++) {
@@ -160,7 +165,7 @@ double matrixSum(vector<vector<double>> a) {
     return s;
 }
 
-double matrixMean(vector<vector<double>> a) {
+double matrixMean(matrix<double> a) {
     double s = matrixSum(a);
     s /= a.size();
     s /= a[0].size();
@@ -171,8 +176,8 @@ bool threshold(double x) {
     return x >= 0.5;
 }
 
-vector<vector<bool>> matrixForEachDoubleToBool(vector<vector<double>> a, bool f(double)) {
-    vector<vector<bool>> b(a.size(), vector<bool>(a[0].size()));
+matrix<bool> matrixForEachDoubleToBool(matrix<double> a, bool f(double)) {
+    matrix<bool> b(a.size(), vector<bool>(a[0].size()));
     for (int i = 0; i < a.size(); i++) {
         for (int j = 0; j < a[0].size(); j++) {
             b[i][j] = f(a[i][j]);
@@ -181,8 +186,8 @@ vector<vector<bool>> matrixForEachDoubleToBool(vector<vector<double>> a, bool f(
     return b;
 }
 
-vector<vector<bool>> matrixLogicXOR(vector<vector<bool>> a, vector<vector<bool>> b) {
-    vector<vector<bool>> c(a.size(), vector<bool>(a[0].size()));
+matrix<bool> matrixLogicXOR(matrix<bool> a, matrix<bool> b) {
+    matrix<bool> c(a.size(), vector<bool>(a[0].size()));
     for (int i = 0; i < a.size(); i++) {
         for (int j = 0; j < a[0].size(); j++) {
             c[i][j] = a[i][j] xor b[i][j];
@@ -191,8 +196,8 @@ vector<vector<bool>> matrixLogicXOR(vector<vector<bool>> a, vector<vector<bool>>
     return c;
 }
 
-vector<vector<double>> matrixForEachBoolToDouble(vector<vector<bool>> a, double f(bool)) {
-    vector<vector<double>> b(a.size(), vector<double>(a[0].size()));
+matrix<double> matrixForEachBoolToDouble(matrix<bool> a, double f(bool)) {
+    matrix<double> b(a.size(), vector<double>(a[0].size()));
     for (int i = 0; i < a.size(); i++) {
         for (int j = 0; j < a[0].size(); j++) {
             b[i][j] = f(a[i][j]);
@@ -210,32 +215,32 @@ class ANNVec {
    private:
     vector<int> stucture;
     int layerCount;
-    vector<vector<vector<double>>> w;
-    vector<vector<double>> b;
+    tensor<double> w;
+    matrix<double> b;
 
    public:
     ANNVec(vector<int> structure) {  // TODO: separate input size, maybe separate crete and initialize
         this->stucture = structure;
         this->layerCount = structure.size();
-        w = vector<vector<vector<double>>>(structure.size() - 1);
-        b = vector<vector<double>>(structure.size() - 1);
+        w = tensor<double>(structure.size() - 1);
+        b = matrix<double>(structure.size() - 1);
         for (int iL = 1; iL < layerCount; iL++) {
-            w[iL - 1] = vector<vector<double>>(structure[iL], vector<double>(structure[iL - 1], 0.5));
+            w[iL - 1] = matrix<double>(structure[iL], vector<double>(structure[iL - 1], 0.5));
             b[iL - 1] = vector<double>(structure[iL], 0.5);
         }
         cout << fixed << setprecision(7);
     };
     ~ANNVec() {};
 
-    void train(vector<vector<double>> xTrain, vector<vector<double>> yTrain, vector<vector<double>> xTest, vector<vector<double>> yTest, double learningRate, int epochs) {
-        vector<vector<vector<double>>> z(layerCount);
-        vector<vector<vector<double>>> a(layerCount);
-        vector<vector<double>> output;
+    void train(matrix<double> xTrain, matrix<double> yTrain, matrix<double> xTest, matrix<double> yTest, double learningRate, int epochs) {
+        tensor<double> z(layerCount);
+        tensor<double> a(layerCount);
+        matrix<double> output;
         double loss;
         vector<double> epochLossGraph(epochs);
-        vector<vector<vector<double>>> delta(layerCount);
-        vector<vector<vector<double>>> gradW(layerCount);
-        vector<vector<double>> gradB(layerCount);
+        tensor<double> delta(layerCount);
+        tensor<double> gradW(layerCount);
+        matrix<double> gradB(layerCount);
 
         auto trainStartTime = chrono::high_resolution_clock::now();
         for (int iE = 0; iE < epochs; iE++) {
@@ -279,8 +284,8 @@ class ANNVec {
         auto trainEndTime = chrono::high_resolution_clock::now();
         auto trainDuration = chrono::duration_cast<chrono::milliseconds>(trainEndTime - trainStartTime);
 
-        vector<vector<vector<double>>> zTest(layerCount);
-        vector<vector<vector<double>>> aTest(layerCount);
+        tensor<double> zTest(layerCount);
+        tensor<double> aTest(layerCount);
 
         zTest[0] = transpose(xTest);
         aTest[0] = transpose(xTest);
@@ -290,15 +295,15 @@ class ANNVec {
             aTest[iL] = matrixForEach(zTest[iL], sigmoid);
         }
 
-        vector<vector<double>> outputTest = aTest.back();
+        matrix<double> outputTest = aTest.back();
         double testLoss = -matrixMean(
             matrixAddition(
                 matrixSingleProduct(transpose(yTest), matrixForEach(outputTest, log)),
                 matrixSingleProduct(matrixScalarProduct(-1, matrixSingleAddition(transpose(yTest), -1)), matrixForEach(matrixScalarProduct(-1, matrixSingleAddition(outputTest, -1)), log))));
         cout << "Test Loss: " << testLoss << endl;
 
-        vector<vector<bool>> r1 = matrixForEachDoubleToBool(transpose(outputTest), threshold);
-        vector<vector<bool>> r2 = matrixForEachDoubleToBool(yTest, threshold);
+        matrix<bool> r1 = matrixForEachDoubleToBool(transpose(outputTest), threshold);
+        matrix<bool> r2 = matrixForEachDoubleToBool(yTest, threshold);
         double predTrue = r1.size() - matrixSum(matrixForEachBoolToDouble(matrixLogicXOR(r1, r2), boolToDouble));
         double accuracy = predTrue / r1.size();
         cout << "Train Duration (ms): " << trainDuration.count() << endl;
@@ -306,7 +311,7 @@ class ANNVec {
     }
 };
 
-tuple<vector<vector<double>>, vector<vector<double>>> getDataset() {
+tuple<matrix<double>, matrix<double>> getDataset() {
     ifstream file("Student_Performance.csv");
     if (!file.is_open())
         exit(0);  // improve later
@@ -318,8 +323,8 @@ tuple<vector<vector<double>>, vector<vector<double>>> getDataset() {
     while (getline(lineSS, key, ','))
         keys.push_back(key);
 
-    vector<vector<double>> X;
-    vector<vector<double>> y;  // TODO: Make y 2d
+    matrix<double> X;
+    matrix<double> y;  // TODO: Make y 2d
     vector<double> lineData;
     string stringData;
     int n = 10000;
@@ -347,25 +352,25 @@ tuple<vector<vector<double>>, vector<vector<double>>> getDataset() {
 
 int main() {
     /*
-    vector<vector<double>> xTrain = {
+    matrix<double>xTrain = {
         {0.1, 0.2},
         {0.3, 0.4},
     };
-    vector<vector<double>> yTrain = {
+    matrix<double>yTrain = {
         {0.4},
         {0.6},
     };
-    vector<vector<double>> xTest = {
+    matrix<double>xTest = {
         {0.1, 0.2},
         {0.3, 0.4},
     };
-    vector<vector<double>> yTest = {
+    matrix<double>yTest = {
         {0.4},
         {0.6},
     };
     */
 
-    vector<vector<double>> xData, yData, xTrain, yTrain, xTest, yTest;
+    matrix<double> xData, yData, xTrain, yTrain, xTest, yTest;
     tie(xData, yData) = getDataset();
     size_t i;
     for (i = 0; i < xData.size() * 0.9; i++) {
